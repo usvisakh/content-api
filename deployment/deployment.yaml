@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: content-api
-          image: 252078852689.dkr.ecr.us-east-2.amazonaws.com/cognianxtgen:1.0
+          image: 252078852689.dkr.ecr.us-east-2.amazonaws.com/cognianxtgen:2.6
           env:
             - name: NODE_ENV
               value: production
