@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-api-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: content-api
+  template:
+    metadata:
+      labels:
+        app: content-api
+    spec:
+      containers:
+        - name: content-api
+          image: 252078852689.dkr.ecr.us-east-2.amazonaws.com/cognianxtgen:1.0
+          env:
+            - name: NODE_ENV
+              value: production
+          ports:
+            - containerPort: 3000

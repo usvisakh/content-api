@@ -1,0 +1,52 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      id: build
+    - name: Build the Docker image
+      if: contains(github.event.head_commit.message, 'build')
+      run: |
+        current_version=$(cat versions.txt 2>/dev/null)
+        if [[ -z "$current_version" ]]; then
+          # Set initial version as 1.0 if versions.txt is empty
+          new_version=1.0
+          echo "${{ secrets.DOCKERGITPW }}" | docker login ghcr.io --username usvisakh --password-stdin
+          docker image build -t ghcr.io/usvisakh/content-api:$new_version .
+          docker push ghcr.io/usvisakh/content-api:$new_version
+          echo $new_version >> versions.txt
+          sed -E -i'' "s/(image: .*\/cognianxtgen:)[0-9]+\.[0-9]+/\1$new_version/g" deployment/deployment.yaml 
+          git config --local user.email "usvisakh@gmail.com"
+          git config --local user.name "usvisakh" 
+          git commit -a -m "Updated version tag"
+          git push origin main
+        else
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_KEY }}
+          aws configure set region ${{ secrets.REGION }}
+          current_version=$(tail -1 versions.txt)
+          echo $current_version
+          increment=0.1
+          new_version=$(echo "$current_version + $increment" | bc)
+          echo "${{ secrets.DOCKERGITPW }}" | docker login ghcr.io --username usvisakh --password-stdin
+          aws ecr get-login-password --region ${{ secrets.REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_LOGIN }}
+          docker image build -t 252078852689.dkr.ecr.us-east-2.amazonaws.com/cognianxtgen:$new_version .
+          docker push 252078852689.dkr.ecr.us-east-2.amazonaws.com/cognianxtgen:$new_version
+          echo $new_version >> versions.txt
+          sed -E -i'' "s/(image: .*\/cognianxtgen:)[0-9]+\.[0-9]+/\1$new_version/g" deployment/deployment.yaml
+          git config --local user.email "usvisakh@gmail.com"
+          git config --local user.name "usvisakh" 
+          git commit -a -m "Updated version tag"
+          git push origin main
+        fi
